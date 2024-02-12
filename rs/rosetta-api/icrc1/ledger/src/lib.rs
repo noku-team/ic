@@ -123,7 +123,7 @@ impl InitArgsBuilder {
                 owner: default_owner,
                 subaccount: None,
             },
-            minting_accounts: vec![Account {
+            issuers: vec![Account {
                 owner: default_owner,
                 subaccount: None,
             }],
@@ -140,6 +140,7 @@ impl InitArgsBuilder {
                 node_max_memory_size_bytes: None,
                 max_message_size_bytes: None,
                 controller_id: default_owner.into(),
+                more_controller_ids: None,
                 cycles_for_archive_creation: None,
                 max_transactions_per_response: None,
             },
@@ -219,7 +220,7 @@ impl InitArgsBuilder {
 #[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
 pub struct InitArgs {
     pub minting_account: Account,
-    pub minting_accounts: Vec<Account>,
+    pub issuers: Vec<Account>,
     pub fee_collector_account: Option<Account>,
     pub initial_balances: Vec<(Account, Nat)>,
     pub transfer_fee: Nat,
@@ -286,7 +287,7 @@ pub struct Ledger<Tokens: TokensType> {
     blockchain: Blockchain<CdkRuntime, Icrc1ArchiveWasm>,
 
     minting_account: Account,
-    minting_accounts: Vec<Account>,
+    issuers: Vec<Account>,
     fee_collector: Option<FeeCollector<Account>>,
 
     transactions_by_hash: BTreeMap<HashOf<Transaction<Tokens>>, BlockIndex>,
@@ -349,7 +350,7 @@ impl<Tokens: TokensType> Ledger<Tokens> {
         sink: impl Sink + Clone,
         InitArgs {
             minting_account,
-            minting_accounts,
+            issuers,
             initial_balances,
             transfer_fee,
             token_name,
@@ -378,7 +379,7 @@ impl<Tokens: TokensType> Ledger<Tokens> {
             transactions_by_hash: BTreeMap::new(),
             transactions_by_height: VecDeque::new(),
             minting_account,
-            minting_accounts,
+            issuers,
             fee_collector: fee_collector_account.map(FeeCollector::from),
             transfer_fee: Tokens::try_from(transfer_fee.clone()).unwrap_or_else(|e| {
                 panic!(
@@ -533,16 +534,16 @@ impl<Tokens: TokensType> LedgerData for Ledger<Tokens> {
 }
 
 impl<Tokens: TokensType> Ledger<Tokens> {
-    pub fn minting_account(&self) -> Account {
-        self.minting_account
+    pub fn minting_account(&self) -> &Account {
+        &self.minting_account
     }
 
-    pub fn minting_accounts(&self) -> Vec<Account> {
-        self.minting_accounts
+    pub fn issuers(&self) -> Box<Vec<Account>> {
+        Box::new(self.issuers.clone())
     }
 
     pub fn add_minting_account(&mut self, new_minting_account: Account) -> () {
-        self.minting_accounts.push(new_minting_account)
+        self.issuers.push(new_minting_account)
     }
 
     pub fn transfer_fee(&self) -> Tokens {

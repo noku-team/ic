@@ -70,7 +70,6 @@ type TransferArg = record {
 
 type BurnArg = record {
     from_subaccount : opt Subaccount;
-    spender : Option<Account>;
     amount : Tokens;
     fee : opt Tokens;
     memo : opt blob;
@@ -109,6 +108,7 @@ type FeatureFlags = record {
 // The initialization parameters of the Ledger
 type InitArgs = record {
     minting_account : Account;
+    issuers : vec Account;
     fee_collector_account : opt Account;
     transfer_fee : nat;
     decimals : opt nat8;
@@ -128,6 +128,7 @@ type InitArgs = record {
         cycles_for_archive_creation : opt nat64;
         node_max_memory_size_bytes : opt nat64;
         controller_id : principal;
+        more_controller_ids : opt vec principal;
     };
 };
 
@@ -387,6 +388,8 @@ service : (ledger_arg : LedgerArg) -> {
     icrc1_total_supply : () -> (Tokens) query;
     icrc1_fee : () -> (Tokens) query;
     icrc1_minting_account : () -> (opt Account) query;
+    icrc1_issuers : () -> (opt vec Account) query;
+    icrc1_add_issuer : (Account) -> ();
     icrc1_balance_of : (Account) -> (Tokens) query;
     icrc1_transfer : (TransferArg) -> (TransferResult);
     icrc1_mint : (TransferArg) -> (TransferResult);

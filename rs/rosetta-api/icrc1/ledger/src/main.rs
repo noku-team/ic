@@ -258,14 +258,20 @@ fn icrc1_metadata() -> Vec<(String, Value)> {
 
 #[query]
 #[candid_method(query)]
-fn icrc1_minting_account() -> Option<Vec<Account>> {
+fn icrc1_minting_account() -> Option<Account> {
     Access::with_ledger(|ledger| Some(*ledger.minting_account()))
 }
 
 #[query]
 #[candid_method(query)]
-fn icrc1_add_minting_account(account: Account) -> () {
-    Access::with_ledger(|ledger| ledger.add_minting_account(account))
+fn icrc1_issuers() -> Option<Vec<Account>> {
+    Access::with_ledger(|ledger| Some(*ledger.issuers()))
+}
+
+#[update]
+#[candid_method(update)]
+fn icrc1_add_issuer(account: Account) -> () {
+    Access::with_ledger_mut(|ledger| ledger.add_minting_account(account))
 }
 
 #[query(name = "icrc1_balance_of")]
@@ -289,7 +295,7 @@ async fn execute_burn(
     created_at_time: Option<u64>,
 ) -> Result<Nat, CoreTransferError<Tokens>> {
     let block_idx = Access::with_ledger_mut(|ledger| {
-        if ledger.minting_accounts().contains(&from_account) {
+        if ledger.issuers().contains(&from_account) {
             ic_cdk::trap("Only minting account can burn tokens")
         }
 
@@ -377,7 +383,7 @@ async fn execute_mint(
     created_at_time: Option<u64>,
 ) -> Result<Nat, CoreTransferError<Tokens>> {
     let block_idx = Access::with_ledger_mut(|ledger| {
-        if ledger.minting_accounts().contains(&from_account) {
+        if ledger.issuers().contains(&from_account) {
             ic_cdk::trap("Only minting account can mint tokens")
         }
 
@@ -565,7 +571,7 @@ async fn icrc1_burn(arg: BurnArg) -> Result<Nat, TransferError> {
 
     execute_burn(
         from_account,
-        arg.spender,
+        Some(from_account),
         arg.fee,
         arg.amount,
         arg.memo,
@@ -691,7 +697,7 @@ async fn icrc2_approve(arg: ApproveArgs) -> Result<Nat, ApproveError> {
         if from_account.owner == arg.spender.owner {
             ic_cdk::trap("self approval is not allowed")
         }
-        if ledger.minting_accounts().contains(&from_account) {
+        if ledger.issuers().contains(&from_account) {
             ic_cdk::trap("the minting account cannot delegate mints")
         }
         match arg.memo.as_ref() {

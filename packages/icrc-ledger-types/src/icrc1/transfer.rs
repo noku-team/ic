@@ -26,7 +26,6 @@ pub struct TransferArg {
 pub struct BurnArg {
     #[serde(default)]
     pub from_subaccount: Option<Subaccount>,
-    pub spender: Option<Account>,
     #[serde(default)]
     pub fee: Option<NumTokens>,
     #[serde(default)]
