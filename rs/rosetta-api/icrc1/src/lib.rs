@@ -38,9 +38,9 @@ pub enum Operation<Tokens: TokensType> {
         #[serde(with = "compact_account")]
         to: Account,
         #[serde(
-            default,
-            skip_serializing_if = "Option::is_none",
-            with = "compact_account::opt"
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "compact_account::opt"
         )]
         spender: Option<Account>,
         #[serde(rename = "amt")]
@@ -53,9 +53,9 @@ pub enum Operation<Tokens: TokensType> {
         #[serde(with = "compact_account")]
         from: Account,
         #[serde(
-            default,
-            skip_serializing_if = "Option::is_none",
-            with = "compact_account::opt"
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "compact_account::opt"
         )]
         spender: Option<Account>,
         #[serde(rename = "amt")]
@@ -189,7 +189,7 @@ impl<Tokens: TokensType> From<Transaction<Tokens>> for FlattenedTransaction<Toke
                 Transfer { .. } => "xfer",
                 Approve { .. } => "approve",
             }
-            .into(),
+                .into(),
             from: match &t.operation {
                 Transfer { from, .. } | Burn { from, .. } | Approve { from, .. } => Some(*from),
                 _ => None,
@@ -242,7 +242,9 @@ impl<Tokens: TokensType> LedgerTransaction for Transaction<Tokens> {
     type Tokens = Tokens;
 
     fn burn(
+        // Entity who could burn tokens
         from: Account,
+        // Entity to which tokens are burned
         spender: Option<Account>,
         amount: Tokens,
         created_at_time: Option<TimeStamp>,
@@ -306,8 +308,8 @@ impl<Tokens: TokensType> LedgerTransaction for Transaction<Tokens> {
         now: TimeStamp,
         effective_fee: Tokens,
     ) -> Result<(), TxApplyError<Tokens>>
-    where
-        C: LedgerContext<AccountId = Self::AccountId, Tokens = Tokens>,
+        where
+            C: LedgerContext<AccountId=Self::AccountId, Tokens=Tokens>,
     {
         let fee_collector = context.fee_collector().map(|fc| fc.fee_collector);
         let fee_collector = fee_collector.as_ref();
@@ -356,21 +358,22 @@ impl<Tokens: TokensType> LedgerTransaction for Transaction<Tokens> {
                 spender,
                 amount,
             } => {
-                if spender.is_some() && from != &spender.unwrap() {
-                    let allowance = context.approvals().allowance(from, &spender.unwrap(), now);
-                    if allowance.amount < *amount {
-                        return Err(TxApplyError::InsufficientAllowance {
-                            allowance: allowance.amount,
-                        });
-                    }
-                }
+                // TODO CHECK IF YOU CAN REMOVE THIS ALLOWANCE
+                // if spender.is_some() && from != &spender.unwrap() {
+                //     let allowance = context.approvals().allowance(from, &spender.unwrap(), now);
+                //     if allowance.amount < *amount {
+                //         return Err(TxApplyError::InsufficientAllowance {
+                //             allowance: allowance.amount,
+                //         });
+                //     }
+                // }
                 context.balances_mut().burn(from, amount.clone())?;
-                if spender.is_some() && from != &spender.unwrap() {
-                    context
-                        .approvals_mut()
-                        .use_allowance(from, &spender.unwrap(), amount.clone(), now)
-                        .expect("bug: cannot use allowance");
-                }
+                // if spender.is_some() && from != &spender.unwrap() {
+                //     context
+                //         .approvals_mut()
+                //         .use_allowance(from, &spender.unwrap(), amount.clone(), now)
+                //         .expect("bug: cannot use allowance");
+                // }
             }
             Operation::Mint { to, amount } => context.balances_mut().mint(to, amount.clone())?,
             Operation::Approve {
@@ -446,7 +449,7 @@ impl<Tokens: TokensType> Transaction<Tokens> {
 }
 
 impl<Tokens: TokensType> TryFrom<icrc_ledger_types::icrc3::transactions::Transaction>
-    for Transaction<Tokens>
+for Transaction<Tokens>
 {
     type Error = String;
     fn try_from(
@@ -602,9 +605,9 @@ impl<Tokens: TokensType> BlockType for Block<Tokens> {
         };
         let (fee_collector, fee_collector_block_index) = match fee_collector {
             Some(FeeCollector {
-                fee_collector,
-                block_index: None,
-            }) => (Some(fee_collector), None),
+                     fee_collector,
+                     block_index: None,
+                 }) => (Some(fee_collector), None),
             Some(FeeCollector { block_index, .. }) => (None, block_index),
             None => (None, None),
         };

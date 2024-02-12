@@ -16,8 +16,8 @@ pub trait CheckedAdd: Sized {
 }
 
 impl<T> CheckedAdd for T
-where
-    T: num_traits::CheckedAdd,
+    where
+        T: num_traits::CheckedAdd,
 {
     fn checked_add(&self, v: &Self) -> Option<Self> {
         self.checked_add(v)
@@ -35,8 +35,8 @@ pub trait CheckedSub: Sized {
 }
 
 impl<T> CheckedSub for T
-where
-    T: num_traits::CheckedSub,
+    where
+        T: num_traits::CheckedSub,
 {
     fn checked_sub(&self, v: &Self) -> Option<Self> {
         self.checked_sub(v)
@@ -53,8 +53,8 @@ pub trait Zero: Sized + CheckedAdd {
 }
 
 impl<T> Zero for T
-where
-    T: CheckedAdd + num_traits::Zero,
+    where
+        T: CheckedAdd + num_traits::Zero,
 {
     fn zero() -> Self {
         num_traits::Zero::zero()
@@ -66,7 +66,26 @@ where
 }
 
 pub trait TokensType:
-    Bounded
+Bounded
++ CheckedAdd
++ CheckedSub
++ Zero
++ Clone
++ Debug
++ Into<Nat>
++ TryFrom<Nat, Error = String>
++ PartialEq
++ Eq
++ PartialOrd
++ Ord
++ Serialize
++ DeserializeOwned
++ std::hash::Hash
+{
+}
+
+impl<T> TokensType for T where
+    T: Bounded
     + CheckedAdd
     + CheckedSub
     + Zero
@@ -81,41 +100,23 @@ pub trait TokensType:
     + Serialize
     + DeserializeOwned
     + std::hash::Hash
-{
-}
-
-impl<T> TokensType for T where
-    T: Bounded
-        + CheckedAdd
-        + CheckedSub
-        + Zero
-        + Clone
-        + Debug
-        + Into<Nat>
-        + TryFrom<Nat, Error = String>
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord
-        + Serialize
-        + DeserializeOwned
-        + std::hash::Hash
+    + Copy
 {
 }
 
 #[derive(
-    Serialize,
-    Deserialize,
-    CandidType,
-    Clone,
-    Copy,
-    Hash,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Default,
+Serialize,
+Deserialize,
+CandidType,
+Clone,
+Copy,
+Hash,
+Debug,
+PartialEq,
+Eq,
+PartialOrd,
+Ord,
+Default,
 )]
 pub struct Tokens {
     /// Number of 10^-8 Tokens.
