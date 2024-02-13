@@ -281,7 +281,24 @@ fn icrc1_add_issuer(account: Account) -> () {
             ic_cdk::trap("Only minting account can burn tokens")
         }
 
-        ledger.add_minting_account(account)
+        ledger.add_issuer(account)
+    })
+}
+
+#[update]
+#[candid_method(update)]
+fn icrc1_remove_issuer(account: Account) -> () {
+    let from_account = Account {
+        owner: ic_cdk::api::caller(),
+        subaccount: None,
+    };
+
+    Access::with_ledger_mut(|ledger| {
+        if !ledger.issuers().contains(&from_account) {
+            ic_cdk::trap("Only minting account can burn tokens")
+        }
+
+        ledger.remove_issuer(account)
     })
 }
 

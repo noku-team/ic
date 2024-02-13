@@ -542,8 +542,12 @@ impl<Tokens: TokensType> Ledger<Tokens> {
         Box::new(self.issuers.clone())
     }
 
-    pub fn add_minting_account(&mut self, new_minting_account: Account) -> () {
+    pub fn add_issuer(&mut self, new_minting_account: Account) -> () {
         self.issuers.push(new_minting_account)
+    }
+
+    pub fn remove_issuer(&mut self, account: Account) -> () {
+        self.issuers.retain(|&x| !x.eq(&account));
     }
 
     pub fn transfer_fee(&self) -> Tokens {
