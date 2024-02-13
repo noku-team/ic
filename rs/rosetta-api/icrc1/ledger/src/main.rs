@@ -271,7 +271,18 @@ fn icrc1_issuers() -> Option<Vec<Account>> {
 #[update]
 #[candid_method(update)]
 fn icrc1_add_issuer(account: Account) -> () {
-    Access::with_ledger_mut(|ledger| ledger.add_minting_account(account))
+    let from_account = Account {
+        owner: ic_cdk::api::caller(),
+        subaccount: None,
+    };
+
+    Access::with_ledger_mut(|ledger| {
+        if !ledger.issuers().contains(&from_account) {
+            ic_cdk::trap("Only minting account can burn tokens")
+        }
+
+        ledger.add_minting_account(account)
+    })
 }
 
 #[query(name = "icrc1_balance_of")]
@@ -295,7 +306,7 @@ async fn execute_burn(
     created_at_time: Option<u64>,
 ) -> Result<Nat, CoreTransferError<Tokens>> {
     let block_idx = Access::with_ledger_mut(|ledger| {
-        if ledger.issuers().contains(&from_account) {
+        if !ledger.issuers().contains(&from_account) {
             ic_cdk::trap("Only minting account can burn tokens")
         }
 
@@ -383,7 +394,7 @@ async fn execute_mint(
     created_at_time: Option<u64>,
 ) -> Result<Nat, CoreTransferError<Tokens>> {
     let block_idx = Access::with_ledger_mut(|ledger| {
-        if ledger.issuers().contains(&from_account) {
+        if !ledger.issuers().contains(&from_account) {
             ic_cdk::trap("Only minting account can mint tokens")
         }
 
@@ -697,7 +708,7 @@ async fn icrc2_approve(arg: ApproveArgs) -> Result<Nat, ApproveError> {
         if from_account.owner == arg.spender.owner {
             ic_cdk::trap("self approval is not allowed")
         }
-        if ledger.issuers().contains(&from_account) {
+        if !ledger.issuers().contains(&from_account) {
             ic_cdk::trap("the minting account cannot delegate mints")
         }
         match arg.memo.as_ref() {
