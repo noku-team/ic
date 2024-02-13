@@ -323,10 +323,6 @@ async fn execute_burn(
     created_at_time: Option<u64>,
 ) -> Result<Nat, CoreTransferError<Tokens>> {
     let block_idx = Access::with_ledger_mut(|ledger| {
-        if !ledger.issuers().contains(&from_account) {
-            ic_cdk::trap("Only minting account can burn tokens")
-        }
-
         let now = TimeStamp::from_nanos_since_unix_epoch(ic_cdk::api::time());
         let created_at_time = created_at_time.map(TimeStamp::from_nanos_since_unix_epoch);
 
