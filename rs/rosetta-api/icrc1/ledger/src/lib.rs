@@ -123,6 +123,10 @@ impl InitArgsBuilder {
                 owner: default_owner,
                 subaccount: None,
             },
+            issuers: vec![Account {
+                owner: default_owner,
+                subaccount: None,
+            }],
             fee_collector_account: None,
             initial_balances: vec![],
             transfer_fee: 10_000_u32.into(),
@@ -216,6 +220,7 @@ impl InitArgsBuilder {
 #[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
 pub struct InitArgs {
     pub minting_account: Account,
+    pub issuers: Vec<Account>,
     pub fee_collector_account: Option<Account>,
     pub initial_balances: Vec<(Account, Nat)>,
     pub transfer_fee: Nat,
@@ -268,7 +273,6 @@ pub struct UpgradeArgs {
 }
 
 #[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
-#[allow(clippy::large_enum_variant)]
 pub enum LedgerArgument {
     Init(InitArgs),
     Upgrade(Option<UpgradeArgs>),
@@ -283,6 +287,7 @@ pub struct Ledger<Tokens: TokensType> {
     blockchain: Blockchain<CdkRuntime, Icrc1ArchiveWasm>,
 
     minting_account: Account,
+    issuers: Vec<Account>,
     fee_collector: Option<FeeCollector<Account>>,
 
     transactions_by_hash: BTreeMap<HashOf<Transaction<Tokens>>, BlockIndex>,
@@ -345,6 +350,7 @@ impl<Tokens: TokensType> Ledger<Tokens> {
         sink: impl Sink + Clone,
         InitArgs {
             minting_account,
+            issuers,
             initial_balances,
             transfer_fee,
             token_name,
@@ -373,6 +379,7 @@ impl<Tokens: TokensType> Ledger<Tokens> {
             transactions_by_hash: BTreeMap::new(),
             transactions_by_height: VecDeque::new(),
             minting_account,
+            issuers,
             fee_collector: fee_collector_account.map(FeeCollector::from),
             transfer_fee: Tokens::try_from(transfer_fee.clone()).unwrap_or_else(|e| {
                 panic!(
@@ -399,21 +406,21 @@ impl<Tokens: TokensType> Ledger<Tokens> {
                 .unwrap(),
         };
 
-        for (account, balance) in initial_balances.into_iter() {
-            let amount = Tokens::try_from(balance.clone()).unwrap_or_else(|e| {
-                panic!(
-                    "failed to convert initial balance {} to tokens: {}",
-                    balance, e
-                )
-            });
-            let mint = Transaction::mint(account, amount, Some(now), None);
-            apply_transaction(&mut ledger, mint, now, Tokens::zero()).unwrap_or_else(|err| {
-                panic!(
-                    "failed to mint {} tokens to {}: {:?}",
-                    balance, account, err
-                )
-            });
-        }
+        // for (account, balance) in initial_balances.into_iter() {
+        //     let amount = Tokens::try_from(balance.clone()).unwrap_or_else(|e| {
+        //         panic!(
+        //             "failed to convert initial balance {} to tokens: {}",
+        //             balance, e
+        //         )
+        //     });
+        //     let mint = Transaction::mint(account, amount, Some(now), None);
+        //     apply_transaction(&mut ledger, mint, now, Tokens::zero()).unwrap_or_else(|err| {
+        //         panic!(
+        //             "failed to mint {} tokens to {}: {:?}",
+        //             balance, account, err
+        //         )
+        //     });
+        // }
 
         ledger
     }
@@ -529,6 +536,18 @@ impl<Tokens: TokensType> LedgerData for Ledger<Tokens> {
 impl<Tokens: TokensType> Ledger<Tokens> {
     pub fn minting_account(&self) -> &Account {
         &self.minting_account
+    }
+
+    pub fn issuers(&self) -> Box<Vec<Account>> {
+        Box::new(self.issuers.clone())
+    }
+
+    pub fn add_issuer(&mut self, new_minting_account: Account) -> () {
+        self.issuers.push(new_minting_account)
+    }
+
+    pub fn remove_issuer(&mut self, account: Account) -> () {
+        self.issuers.retain(|&x| !x.eq(&account));
     }
 
     pub fn transfer_fee(&self) -> Tokens {

@@ -15,21 +15,21 @@ pub trait BalancesStore {
     /// Its arg is previous balance or None if not found and
     /// return value is the new balance.
     fn update<F, E>(&mut self, acc: Self::AccountId, action_on_acc: F) -> Result<Self::Tokens, E>
-    where
-        F: FnMut(Option<&Self::Tokens>) -> Result<Self::Tokens, E>;
+        where
+            F: FnMut(Option<&Self::Tokens>) -> Result<Self::Tokens, E>;
 }
 
 #[allow(clippy::len_without_is_empty)]
 pub trait InspectableBalancesStore: BalancesStore {
-    fn iter(&self) -> Box<dyn Iterator<Item = (&Self::AccountId, &Self::Tokens)> + '_>;
+    fn iter(&self) -> Box<dyn Iterator<Item=(&Self::AccountId, &Self::Tokens)> + '_>;
 
     fn len(&self) -> usize;
 }
 
 impl<AccountId, Tokens> BalancesStore for BTreeMap<AccountId, Tokens>
-where
-    AccountId: Eq + Clone + std::cmp::Ord,
-    Tokens: TokensType,
+    where
+        AccountId: Eq + Clone + std::cmp::Ord,
+        Tokens: TokensType,
 {
     type AccountId = AccountId;
     type Tokens = Tokens;
@@ -39,8 +39,8 @@ where
     }
 
     fn update<F, E>(&mut self, k: AccountId, mut f: F) -> Result<Self::Tokens, E>
-    where
-        F: FnMut(Option<&Self::Tokens>) -> Result<Self::Tokens, E>,
+        where
+            F: FnMut(Option<&Self::Tokens>) -> Result<Self::Tokens, E>,
     {
         match self.entry(k) {
             Entry::Occupied(mut entry) => {
@@ -64,15 +64,15 @@ where
 }
 
 impl<AccountId, Tokens> InspectableBalancesStore for BTreeMap<AccountId, Tokens>
-where
-    AccountId: Eq + Clone + std::cmp::Ord,
-    Tokens: TokensType,
+    where
+        AccountId: Eq + Clone + std::cmp::Ord,
+        Tokens: TokensType,
 {
     fn len(&self) -> usize {
         self.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = (&Self::AccountId, &Self::Tokens)> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item=(&Self::AccountId, &Self::Tokens)> + '_> {
         Box::new(self.iter())
     }
 }
@@ -93,30 +93,33 @@ pub struct Balances<S: BalancesStore> {
     pub store: S,
     #[serde(alias = "icpt_pool")]
     pub token_pool: S::Tokens,
+    pub supply: S::Tokens,
 }
 
 impl<S> Default for Balances<S>
-where
-    S: Default + BalancesStore,
-    S::Tokens: TokensType,
+    where
+        S: Default + BalancesStore,
+        S::Tokens: TokensType,
 {
     fn default() -> Self {
         Self {
             store: Default::default(),
             token_pool: S::Tokens::max_value(),
+            supply: S::Tokens::zero(),
         }
     }
 }
 
 impl<S> Balances<S>
-where
-    S: Default + BalancesStore,
-    S::Tokens: TokensType,
+    where
+        S: Default + BalancesStore,
+        S::Tokens: TokensType,
 {
     pub fn new() -> Self {
         Self {
             store: S::default(),
             token_pool: S::Tokens::max_value(),
+            supply: S::Tokens::zero(),
         }
     }
 
@@ -156,10 +159,15 @@ where
         amount: S::Tokens,
     ) -> Result<(), BalanceError<S::Tokens>> {
         self.debit(from, amount.clone())?;
-        self.token_pool = self
-            .token_pool
-            .checked_add(&amount)
-            .expect("Overflow of the token pool while burning");
+        self.supply = self
+            .supply
+            .checked_sub(&amount)
+            .expect("Supply underflow while burning");
+        // self.token_pool = self
+        //     .token_pool
+        //     // .checked_add(&amount)
+        //     .checked_sub(&amount)
+        //     .expect("Overflow of the token pool while burning");
         Ok(())
     }
 
@@ -168,10 +176,16 @@ where
         to: &S::AccountId,
         amount: S::Tokens,
     ) -> Result<(), BalanceError<S::Tokens>> {
-        self.token_pool = self
-            .token_pool
-            .checked_sub(&amount)
-            .expect("total token supply exceeded");
+        // self.token_pool += &amount;
+        self.supply = self
+            .supply
+            .checked_add(&amount)
+            .expect("Supply exceeded");
+        // self.token_pool = self
+        //     .token_pool
+        //     // .checked_sub(&amount)
+        //     .checked_add(&amount)
+        //     .expect("total token supply exceeded");
         self.credit(to, amount);
         Ok(())
     }
@@ -236,5 +250,9 @@ where
             "It is expected that the token_pool is always smaller than \
             or equal to Tokens::max_value(), yet subtracting it lead to underflow",
         )
+    }
+
+    pub fn total_supply_test(&self) -> S::Tokens {
+        S::Tokens::zero().checked_add(&self.supply).expect("Error while retrieving token supply")
     }
 }

@@ -65,7 +65,17 @@ type TransferArg = record {
     fee : opt Tokens;
     memo : opt blob;
     created_at_time: opt Timestamp;
+    is_mint: opt bool;
 };
+
+type BurnArg = record {
+    from_subaccount : opt Subaccount;
+    amount : Tokens;
+    fee : opt Tokens;
+    memo : opt blob;
+    created_at_time: opt Timestamp;
+};
+
 
 type TransferError = variant {
     BadFee : record { expected_fee : Tokens };
@@ -98,6 +108,7 @@ type FeatureFlags = record {
 // The initialization parameters of the Ledger
 type InitArgs = record {
     minting_account : Account;
+    issuers : vec Account;
     fee_collector_account : opt Account;
     transfer_fee : nat;
     decimals : opt nat8;
@@ -243,14 +254,14 @@ type Transfer = record {
   spender : opt Account;
 };
 
-type Value = variant { 
-    Blob : blob; 
-    Text : text; 
+type Value = variant {
+    Blob : blob;
+    Text : text;
     Nat : nat;
-    Nat64: nat64; 
+    Nat64: nat64;
     Int : int;
-    Array : vec Value; 
-    Map : Map; 
+    Array : vec Value;
+    Map : Map;
 };
 
 type Map = vec record { text; Value };
@@ -367,8 +378,8 @@ type ArchiveInfo = record {
 service : (ledger_arg : LedgerArg) -> {
     archives : () -> (vec ArchiveInfo) query;
     get_transactions : (GetTransactionsRequest) -> (GetTransactionsResponse) query;
-    get_blocks : (GetBlocksArgs) -> (GetBlocksResponse) query;  
-    get_data_certificate : () -> (DataCertificate) query; 
+    get_blocks : (GetBlocksArgs) -> (GetBlocksResponse) query;
+    get_data_certificate : () -> (DataCertificate) query;
 
     icrc1_name : () -> (text) query;
     icrc1_symbol : () -> (text) query;
@@ -377,10 +388,15 @@ service : (ledger_arg : LedgerArg) -> {
     icrc1_total_supply : () -> (Tokens) query;
     icrc1_fee : () -> (Tokens) query;
     icrc1_minting_account : () -> (opt Account) query;
+    icrc1_issuers : () -> (opt vec Account) query;
+    icrc1_add_issuer : (Account) -> ();
+    icrc1_remove_issuer : (Account) -> ();
     icrc1_balance_of : (Account) -> (Tokens) query;
     icrc1_transfer : (TransferArg) -> (TransferResult);
+    icrc1_mint : (TransferArg) -> (TransferResult);
+    icrc1_burn : (BurnArg) -> (TransferResult);
     icrc1_supported_standards : () -> (vec StandardRecord) query;
-  
+
     icrc2_approve : (ApproveArgs) -> (ApproveResult);
     icrc2_allowance : (AllowanceArgs) -> (Allowance) query;
     icrc2_transfer_from : (TransferFromArgs) -> (TransferFromResult);

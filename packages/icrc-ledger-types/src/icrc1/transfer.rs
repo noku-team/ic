@@ -1,5 +1,5 @@
 use super::account::{Account, Subaccount};
-use candid::{CandidType, Deserialize, Nat};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use std::fmt;
@@ -19,10 +19,24 @@ pub struct TransferArg {
     #[serde(default)]
     pub memo: Option<Memo>,
     pub amount: NumTokens,
+    pub is_mint: Option<bool>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct BurnArg {
+    #[serde(default)]
+    pub from_subaccount: Option<Subaccount>,
+    #[serde(default)]
+    pub fee: Option<NumTokens>,
+    #[serde(default)]
+    pub created_at_time: Option<u64>,
+    #[serde(default)]
+    pub memo: Option<Memo>,
+    pub amount: NumTokens,
 }
 
 #[derive(
-    Serialize, Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord, Default,
+Serialize, Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord, Default,
 )]
 #[serde(transparent)]
 pub struct Memo(pub ByteBuf);
